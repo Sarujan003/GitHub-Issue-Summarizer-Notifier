@@ -21,8 +21,16 @@ This system acts as an intelligent assistant, saving project managers and develo
 
 The n8n workflow follows these logical steps:
 
+<img width="1456" height="421" alt="workflow" src="https://github.com/user-attachments/assets/87524a5d-7790-46e8-9105-1b52c231fe46" />
+
 1.  **Fetch Issue**: A trigger node waits for a new issue to be created in the specified GitHub repository.
 2.  **Format Data**: A code node cleans up the initial data from the trigger, preparing it for the AI.
 3.  **Analyze with AI**: The issue's title and description are sent to an AI Agent with a specific prompt, asking for a summary and a category in a JSON format.
 4.  **Parse JSON**: An "Edit Fields" node parses the AI's raw text response to extract the `summary` and `category` into clean, usable fields.
 5.  **Send Notification**: A "Send email" node uses the data from all previous steps to construct and send a detailed HTML email.
+
+## Example scenario
+<img width="1188" height="466" alt="issue" src="https://github.com/user-attachments/assets/1fa75bf9-8464-46ef-9d6e-b50fdd986c7c" />
+
+## Notification email
+<img width="1111" height="538" alt="email" src="https://github.com/user-attachments/assets/d51b8dde-b062-434e-b907-bcd40d0ad232" />
