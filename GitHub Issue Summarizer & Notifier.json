@@ -1,0 +1,243 @@
+{
+  "name": "GitHub Issue Summarizer & Notifier",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -96
+      ],
+      "id": "0f2a9268-e2ba-4f65-9b9b-6f974b277ea5",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "repository",
+        "owner": {
+          "__rl": true,
+          "value": "Sarujan003",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "GitHub-Issue-Summarizer-Notifier",
+          "mode": "list",
+          "cachedResultName": "GitHub-Issue-Summarizer-Notifier",
+          "cachedResultUrl": "https://github.com/Sarujan003/GitHub-Issue-Summarizer-Notifier"
+        },
+        "limit": 5,
+        "getRepositoryIssuesFilters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -96
+      ],
+      "id": "5c978314-8dc4-4005-b1fe-86da8a3a8020",
+      "name": "Get issues of a repository",
+      "webhookId": "e502edb2-f49c-483c-9582-51a66e122260",
+      "credentials": {
+        "githubApi": {
+          "id": "UXgr9wJxzOawB4kz",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = [];\nfor (const item of $input.all()) {\n  const newJson = {\n    title: item.json.title,\n    body: item.json.body,\n    url: item.json.html_url,\n    user: item.json.user.login,\n  };\n  items.push({ json: newJson });\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -96
+      ],
+      "id": "2734b2c5-e2f3-49b2-b0b5-0f4eabd0feb5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following GitHub issue and classify it.\n\nIssue Title: {{ $json.title }}\nDescription: {{ $json.body }}\nURL : {{ $json.url }}\nUser : {{ $json.user }}\n\nRespond ONLY with a JSON object with two keys:\n1. \"summary\": A one-sentence technical summary of the issue.\n2. \"category\": Classify the issue as one of the following: \"Bug\", \"Feature Request\", \"Question\", or \"Other\".\n3. \"URL\"\n4. \"User\"\n\nDo not add any other text, markdown, or explanations to your response.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "d55babe7-4564-4a2d-b178-995ce12f87d1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        288,
+        112
+      ],
+      "id": "3f0fba01-f59a-42c9-9a2a-389a76ea3eb0",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "SzsEhTuIpF9OYk41",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c04bee5e-de95-484d-9012-9807a0e9a6a8",
+              "name": "ai_summary",
+              "value": "={{ JSON.parse($('AI Agent').item.json.output.replace(/```json\\n|\\n```/g, '')).summary }}",
+              "type": "string"
+            },
+            {
+              "id": "a449c383-c388-4254-9e33-1ff29c2b96c8",
+              "name": "ai_category",
+              "value": "={{ JSON.parse($('AI Agent').item.json.output.replace(/```json\\n|\\n```/g, '')).category }}",
+              "type": "string"
+            },
+            {
+              "id": "31e9bcdd-ee0d-4b2f-8ac0-78c589d4dc87",
+              "name": "URL",
+              "value": "={{ JSON.parse($('AI Agent').item.json.output.replace(/```json\\n|\\n```/g, '')).URL }}",
+              "type": "string"
+            },
+            {
+              "id": "bd10d4b4-099e-4872-aaef-7ada0463f9ff",
+              "name": "User",
+              "value": "={{ JSON.parse($('AI Agent').item.json.output.replace(/```json\\n|\\n```/g, '')).User }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        -96
+      ],
+      "id": "ef5e848b-6775-4050-8f4b-c2740bea4b74",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fromEmail": "sarujanplus@gmail.com",
+        "toEmail": "sarujanplus@gmail.com",
+        "subject": "=[GitHub Issue - {{ $json.ai_category }}]",
+        "html": "=<h1>New GitHub Issue</h1>\n<p>A new issue has been categorized as <strong>{{ $json.ai_category }}</strong>.</p>\n<hr>\n\n<h3><strong>Problem</strong></h3>\n<p>{{ $json.ai_summary }}</p>\n\n<h3>Details</h3>\n<ul>\n    <li><strong>Opened by:</strong> {{ $json.User }}</li>\n    <li><strong>Link:</strong> <a href=\"{{ $json.URL }}\">View on GitHub</a></li>\n</ul>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        -96
+      ],
+      "id": "77a931ee-75ef-46f2-a08c-1cb8f9b7d72d",
+      "name": "Send email",
+      "webhookId": "48bfc44a-0071-4300-bd3f-7d52da22f1cd",
+      "credentials": {
+        "smtp": {
+          "id": "pZwwjhLZnZjfqWVd",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get issues of a repository",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get issues of a repository": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "81948f3d-fe71-4875-a1b1-249bf8b16129",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "217e6356158037d68b128ab1507f177f7c02183fc5f65d03de9e8638a4f79ed7"
+  },
+  "id": "Z8A7l91CjoVvnYL1",
+  "tags": []
+}
